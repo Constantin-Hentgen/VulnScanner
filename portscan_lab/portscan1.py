@@ -21,7 +21,3 @@ def portscanner(host, ports):
 
 def scan_first_1000_ports():
 	portscanner("127.0.0.1",[i for i in range(1,1025)])
-
-
-# portscanner(port)
-# scan_first_1000_ports()

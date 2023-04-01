@@ -2,6 +2,7 @@
 
 import socket, optparse, threading, sys, os
 
+# classe de couleurs pour les affichages
 class colors:
 	OPEN = '\033[92m'
 	CLOSED = '\033[91m'
@@ -9,10 +10,10 @@ class colors:
 	VERSION = '\033[94m'
 	ENDC = '\033[0m'
 	BOLD = '\033[1m'
-	UNDERLINE = '\033[4m'
 	HEADER = '\033[95m'
 
-def portScan(host, port, service, quiet, vuln_services, array):
+# fonction de scan sur un hôte et port spécifique
+def portScan(host, port, service, quiet, vuln_services_filename):
 	sock = ""
 	try:
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,14 +23,13 @@ def portScan(host, port, service, quiet, vuln_services, array):
 
 		if not service:
 			print(colors.OPEN + f"port {port} open")
-
 		else:
 			banner_text = ""
 			vuln_text = ""
 			try:
 				banner = retBanner(sock, port)
 				try:
-					banner_text = f"{colors.ENDC}{colors.VULNERABLE}{colors.BOLD} {banner}" if banner and is_vulnerable(banner, vuln_services) else f"{colors.ENDC} {banner}"
+					banner_text = f"{colors.ENDC}{colors.VULNERABLE}{colors.BOLD} {banner}" if banner and is_vulnerable(banner, vuln_services_filename) else f"{colors.ENDC} {banner}"
 				except TypeError:
 					pass
 			except OSError:
@@ -50,8 +50,9 @@ def get_vuln_banners(filepath):
 	except FileNotFoundError:
 		print(f"File not found: {options.filename}")
 
-def is_vulnerable(service, vuln_services):
-	with open(vuln_services, 'r') as file:
+# fonction qui renvoie un booléen : le service est inscrit dans la "vuln list" ou non
+def is_vulnerable(service, vuln_services_filename):
+	with open(vuln_services_filename, 'r') as file:
 		source = file.read()
 	vulns = []
 
@@ -63,7 +64,9 @@ def is_vulnerable(service, vuln_services):
 			return True
 	return False
 
+# fonction pour récupérer la bannière du service
 def retBanner(sock, port):
+	# dans le cas de bannière HTTP, j’envoie une "GET request"
 	if port in [80,443]:
 		sock.send(b'GET /\n\n')
 		banner = get_server_name(sock.recv(1024).decode())
@@ -75,6 +78,7 @@ def retBanner(sock, port):
 
 	return banner.split("\n")[0]
 
+# fonction pour récupérer le nom du serveur dans l’en-tête HTTP (Apache, nginx...)
 def get_server_name(response):
 	server_name = ""
 	for line in response.split("\n"):
@@ -96,7 +100,6 @@ def main():
 	parser.add_option("-f", "--file", help="input vulnerable services banner", metavar="FILE")
 
 	(options, args) = parser.parse_args()
-
 	socket.setdefaulttimeout(1)
 
 	try:
@@ -107,8 +110,7 @@ def main():
 
 	service = options.service
 	quiet = options.quiet
-	vuln_services = options.file
-
+	vuln_services_filename = options.file
 	all_ports = options.allports
 
 	if all_ports:
@@ -124,9 +126,8 @@ def main():
     \_/     \__,_| |_| |_| |_| |____/   \___|  \__,_| |_| |_| |_| |_|  \___| |_|   
 	''')
 
-		array = []
 		for port in ports:
-			t = threading.Thread(target=portScan, args=(host,port,service,quiet,vuln_services,array,))
+			t = threading.Thread(target=portScan, args=(host,port,service,quiet,vuln_services_filename,))
 			t.start()
 	else:
 		exit(0)
