@@ -5,18 +5,20 @@ import socket, optparse, threading, sys, os
 class colors:
 	OPEN = '\033[92m'
 	CLOSED = '\033[91m'
+	VULNERABLE = '\033[91m'
 	VERSION = '\033[94m'
-	VULNERABLE = '\033[93m'
 	ENDC = '\033[0m'
 	BOLD = '\033[1m'
 	UNDERLINE = '\033[4m'
 	HEADER = '\033[95m'
 
-def portScan(host, port, service, quiet, vuln_services):
+def portScan(host, port, service, quiet, vuln_services, array):
+	sock = ""
 	try:
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.settimeout(10)
 		sock.connect((host,port))
+		state = "open"
 
 		if not service:
 			print(colors.OPEN + f"port {port} open")
@@ -26,16 +28,16 @@ def portScan(host, port, service, quiet, vuln_services):
 			vuln_text = ""
 			try:
 				banner = retBanner(sock, port)
-				banner_text = f"{colors.ENDC} {banner}" if banner else ""
 				try:
-					vuln_text = f"{colors.VULNERABLE}{colors.UNDERLINE}vulnerable{colors.ENDC}" if is_vulnerable(banner, vuln_services) else ""
+					banner_text = f"{colors.ENDC}{colors.VULNERABLE}{colors.BOLD} {banner}" if banner and is_vulnerable(banner, vuln_services) else f"{colors.ENDC} {banner}"
 				except TypeError:
 					pass
 			except OSError:
 				pass
 			finally:
-				print(f"{colors.BOLD}{colors.HEADER}{colors.OPEN}  port {str(port).ljust(4)} open {banner_text} {colors.ENDC} {vuln_text}")
+				print(f"{colors.BOLD}{colors.HEADER}{colors.OPEN}  port {str(port).ljust(4)} {colors.ENDC} open {banner_text} {colors.ENDC}")
 	except socket.error:
+		state = "closed or filtered"
 		if not quiet:
 			print(f"{colors.CLOSED} port {port} closed or filtered")
 	finally:
@@ -121,8 +123,10 @@ def main():
    \ V /   | |_| | | | | | | |  ___) | | (__  | (_| | | | | | | | | | |  __/ | |   
     \_/     \__,_| |_| |_| |_| |____/   \___|  \__,_| |_| |_| |_| |_|  \___| |_|   
 	''')
+
+		array = []
 		for port in ports:
-			t = threading.Thread(target=portScan, args=(host,port,service,quiet,vuln_services,))
+			t = threading.Thread(target=portScan, args=(host,port,service,quiet,vuln_services,array,))
 			t.start()
 	else:
 		exit(0)
