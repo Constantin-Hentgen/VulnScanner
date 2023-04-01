@@ -14,7 +14,6 @@ class colors:
 
 # fonction de scan sur un hôte et port spécifique
 def portScan(host, port, service, quiet, vuln_services_filename):
-	sock = ""
 	try:
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.settimeout(10)
@@ -36,12 +35,11 @@ def portScan(host, port, service, quiet, vuln_services_filename):
 				pass
 			finally:
 				print(f"{colors.BOLD}{colors.HEADER}{colors.OPEN}  port {str(port).ljust(4)} {colors.ENDC} open {banner_text} {colors.ENDC}")
+		sock.close()
 	except socket.error:
 		state = "closed or filtered"
 		if not quiet:
 			print(f"{colors.CLOSED} port {port} closed or filtered")
-	finally:
-		sock.close()
 
 def get_vuln_banners(filepath):
 	try:
